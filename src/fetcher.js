@@ -1,29 +1,29 @@
 'use strict';
 
 /**
- * Fetches KAM performance data from the live dashboard.
+ * Fetches KAM performance data.
  *
- * Strategy:
- *   1. Try a plain axios GET – works if the page renders data server-side.
- *   2. Fall back to Playwright headless Chromium to execute JS and scrape the
- *      fully-rendered DOM.
- *   3. Parse the HTML with cheerio to extract table rows.
- *   4. Filter records to Rishabh Malhotra's team only.
+ * Priority:
+ *   1. Power BI REST API (direct, real-time) – used when POWERBI_USERNAME and
+ *      POWERBI_PASSWORD are present in .env.
+ *   2. Plain axios GET of the HTML dashboard.
+ *   3. Playwright headless Chromium (JS-rendered fallback).
  */
 
 require('dotenv').config();
-const axios = require('axios');
+const axios   = require('axios');
 const cheerio = require('cheerio');
-const logger = require('./logger');
+const logger  = require('./logger');
+const { fetchFromPowerBI } = require('./powerbi');
 
 const DASHBOARD_URL =
   process.env.DASHBOARD_URL ||
   'https://c24-htmlhub.pages.dev/view/nYIhK3cGo_HCzS4AEit6dOFpWK0BisfPCxc9D98DfK4';
 
-const TL_NAME = (process.env.TL_NAME || 'Rishabh Malhotra').toLowerCase().trim();
+const TL_NAME  = (process.env.TL_NAME  || 'Rishabh Malhotra').toLowerCase().trim();
 const TM_EMAIL = (process.env.TM_EMAIL || 'rishabh.malhotra1@cars24.com').toLowerCase().trim();
 
-const MAX_RETRIES = parseInt(process.env.MAX_RETRIES || '3', 10);
+const MAX_RETRIES   = parseInt(process.env.MAX_RETRIES   || '3', 10);
 const RETRY_DELAY_MS = parseInt(process.env.RETRY_DELAY_MS || '5000', 10);
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -59,7 +59,6 @@ async function fetchViaPlaywright() {
   try {
     const page = await browser.newPage();
     await page.goto(DASHBOARD_URL, { waitUntil: 'networkidle', timeout: 60000 });
-    // Wait for table to appear
     await page.waitForSelector('table', { timeout: 30000 }).catch(() => {});
     const html = await page.content();
     return html;
@@ -70,22 +69,16 @@ async function fetchViaPlaywright() {
 
 // ─── HTML parser ─────────────────────────────────────────────────────────────
 
-/**
- * Parses HTML and extracts KAM performance rows.
- * Returns { headers: string[], rows: Object[], fetchedAt: string }
- */
 function parseHtml(html) {
   const $ = cheerio.load(html);
   const tables = $('table');
 
   if (tables.length === 0) {
-    // Try to extract JSON embedded in script tags (some dashboards embed data)
     const jsonData = extractEmbeddedJson($);
     if (jsonData) return jsonData;
     throw new Error('No table found in dashboard HTML');
   }
 
-  // Use the largest table (most rows) as the data table
   let bestTable = null;
   let bestCount = 0;
   tables.each((_, tbl) => {
@@ -98,7 +91,6 @@ function parseHtml(html) {
     headers.push($(th).text().trim());
   });
 
-  // If no thead, use first tbody row as headers
   if (headers.length === 0) {
     $(bestTable).find('tr').first().find('th, td').each((_, th) => {
       headers.push($(th).text().trim());
@@ -117,7 +109,6 @@ function parseHtml(html) {
 
     const row = {};
     headers.forEach((h, i) => { row[h] = cells[i] || ''; });
-    // Also store positional for resilience
     cells.forEach((v, i) => { row[`col_${i}`] = v; });
     rows.push(row);
   });
@@ -126,14 +117,10 @@ function parseHtml(html) {
   return { headers, rows, fetchedAt: new Date().toISOString() };
 }
 
-/**
- * Attempts to extract embedded JSON data arrays from <script> tags.
- */
 function extractEmbeddedJson($) {
   let found = null;
   $('script').each((_, s) => {
     const text = $(s).html() || '';
-    // Common patterns: var data = [...], window.__DATA__ = {...}, etc.
     const match = text.match(/(?:var\s+\w+\s*=\s*|window\.__\w+__\s*=\s*)(\[[\s\S]*?\]);/);
     if (match) {
       try {
@@ -144,7 +131,7 @@ function extractEmbeddedJson($) {
             rows: arr,
             fetchedAt: new Date().toISOString(),
           };
-          return false; // break
+          return false;
         }
       } catch { /* ignore */ }
     }
@@ -154,14 +141,9 @@ function extractEmbeddedJson($) {
 
 // ─── Team filter ─────────────────────────────────────────────────────────────
 
-/**
- * Normalises column names (lowercase, trim) and filters rows to
- * Rishabh Malhotra's team only.
- */
 function filterTeamRows(rawData) {
   const { headers, rows, fetchedAt } = rawData;
 
-  // Build a header → normalised-key map
   const headerMap = {};
   headers.forEach((h) => {
     const norm = h.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
@@ -177,7 +159,6 @@ function filterTeamRows(rawData) {
     return n;
   });
 
-  // Identify columns that might represent TL name or TM email
   const tlCol = Object.values(headerMap).find((k) =>
     k.includes('tl') || k.includes('team_lead') || k.includes('manager')
   );
@@ -186,20 +167,18 @@ function filterTeamRows(rawData) {
   );
 
   const teamRows = normalised.filter((row) => {
-    const tlVal = (row[tlCol] || '').toLowerCase().trim();
+    const tlVal    = (row[tlCol]    || '').toLowerCase().trim();
     const emailVal = (row[emailCol] || '').toLowerCase().trim();
     return tlVal.includes(TL_NAME) || emailVal === TM_EMAIL;
   });
 
   const unmapped = normalised.filter((row) => {
-    const tlVal = (row[tlCol] || '').toLowerCase().trim();
+    const tlVal    = (row[tlCol]    || '').toLowerCase().trim();
     const emailVal = (row[emailCol] || '').toLowerCase().trim();
     return !tlVal.includes(TL_NAME) && emailVal !== TM_EMAIL;
   });
 
-  logger.info(
-    `Team filter: ${teamRows.length} mapped rows, ${unmapped.length} unmapped rows`
-  );
+  logger.info(`Team filter: ${teamRows.length} mapped rows, ${unmapped.length} unmapped rows`);
 
   return { headers: Object.values(headerMap), teamRows, unmapped, fetchedAt, rawHeaders: headers, headerMap };
 }
@@ -207,16 +186,32 @@ function filterTeamRows(rawData) {
 // ─── Main fetch with retry ───────────────────────────────────────────────────
 
 async function fetchDashboardData() {
+  // ── 1. Power BI direct API (preferred when credentials are configured) ──
+  if (process.env.POWERBI_USERNAME && process.env.POWERBI_PASSWORD) {
+    try {
+      logger.info('Power BI credentials detected – attempting direct API fetch…');
+      const result = await fetchFromPowerBI();
+      logger.info('Power BI fetch succeeded');
+      return result;
+    } catch (pbiErr) {
+      logger.warn(
+        `Power BI fetch failed (${pbiErr.message}) – falling back to web scraper`
+      );
+    }
+  } else {
+    logger.info('No POWERBI_USERNAME/PASSWORD in .env – using web scraper');
+  }
+
+  // ── 2. Web scraper fallback ───────────────────────────────────────────────
   let lastError;
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      logger.info(`Fetch attempt ${attempt}/${MAX_RETRIES}`);
+      logger.info(`Scrape attempt ${attempt}/${MAX_RETRIES}`);
 
       let html;
       try {
         html = await fetchViaHttp();
-        // If we get HTML but it's mostly empty / a loading screen, fall through to Playwright
         if (html.length < 2000 || !html.includes('<table')) {
           logger.info('HTTP response looks like a JS-rendered page – switching to Playwright');
           html = await fetchViaPlaywright();
@@ -226,12 +221,11 @@ async function fetchDashboardData() {
         html = await fetchViaPlaywright();
       }
 
-      const rawData = parseHtml(html);
+      const rawData  = parseHtml(html);
       const filtered = filterTeamRows(rawData);
 
       if (filtered.teamRows.length === 0) {
         logger.warn('No team rows found after filtering – returning all rows as fallback');
-        // Fallback: return all rows so the agent can still publish something
         filtered.teamRows = filtered.unmapped;
         filtered.unmapped = [];
       }
@@ -258,8 +252,9 @@ if (require.main === module) {
   fetchDashboardData()
     .then((data) => {
       console.log('\n=== FETCH RESULT ===');
-      console.log('Headers:', data.headers);
-      console.log('Team rows:', data.teamRows.length);
+      console.log('Source:    ', process.env.POWERBI_USERNAME ? 'Power BI API' : 'Web scraper');
+      console.log('Headers:   ', data.headers);
+      console.log('Team rows: ', data.teamRows.length);
       console.log('Sample row:', JSON.stringify(data.teamRows[0], null, 2));
     })
     .catch((err) => {
