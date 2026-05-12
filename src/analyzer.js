@@ -115,10 +115,10 @@ function analyzeData(filteredData) {
   const mtdAvgConv  = mtdOverallConv;
 
   // ── Rankings ─────────────────────────────────────────────────────────────
-  const byStock   = [...kams].sort((a, b) => b.stockIns - a.stockIns);
-  const byMtdStock= [...kams].sort((a, b) => b.mtdStock - a.mtdStock);
-  const top3      = byStock.slice(0, 3);
-  const bottom3   = byStock.slice(-3).reverse();
+  const byStock    = [...kams].sort((a, b) => b.stockIns - a.stockIns);
+  const byMtdStock = [...kams].sort((a, b) => b.mtdStock - a.mtdStock);
+  const top3       = byStock.slice(0, 3);
+  const bottom3    = byStock.slice(-3).reverse();
   const topPerformer    = byStock[0];
   const lowestPerformer = byStock[byStock.length - 1];
 
@@ -143,10 +143,6 @@ function analyzeData(filteredData) {
 
   // ── KAM above conversion target (20%) ───────────────────────────────────
   const highConvKams = kams.filter((k) => k.conversion >= 20);
-
-  // ── Conversion gap alerts ────────────────────────────────────────────────
-  const apptInspGap  = apptToInspTeam;  // store for trend comparison
-  const inspStockGap = inspToStockTeam;
 
   // ── Contribution % ───────────────────────────────────────────────────────
   kams.forEach((k) => {
