@@ -131,18 +131,71 @@ function truncate(s, len) {
   return s.length > len ? s.slice(0, len - 1) + '…' : s;
 }
 
+// ─── EOD Insights Message (9:00 PM IST) ──────────────────────────────────────
+
+function eodInsightsMessage(csvData) {
+  const d = todayIST();
+
+  if (!csvData || csvData.length === 0) {
+    return `📊 *Day Plan | EOD Insights* | ${d}\n\n` +
+      `_No EOD CSV received. Please drop the EOD data CSV in the_ \`data/\` _folder to generate today's insights._`;
+  }
+
+  const totalLeads  = csvData.reduce((s, k) => s + Number(k.leads  || 0), 0);
+  const totalAppts  = csvData.reduce((s, k) => s + Number(k.appts  || 0), 0);
+  const totalInsps  = csvData.reduce((s, k) => s + Number(k.insps  || 0), 0);
+  const totalSI     = csvData.reduce((s, k) => s + Number(k.si     || 0), 0);
+  const totalDisb   = csvData.reduce((s, k) => s + Number(k.disbursal || 0), 0);
+  const totalPR     = csvData.reduce((s, k) => s + Number(k.pr     || 0), 0);
+  const convPct     = totalLeads > 0 ? ((totalSI / totalLeads) * 100).toFixed(1) : '0';
+  const apptToInsp  = totalAppts > 0 ? ((totalInsps / totalAppts) * 100).toFixed(1) : '0';
+
+  const sorted      = [...csvData].sort((a, b) => Number(b.si || 0) - Number(a.si || 0));
+  const top         = sorted[0];
+  const bottom      = sorted[sorted.length - 1];
+
+  const lines = [
+    `📊 *Day Plan | EOD Insights* | ${d}`,
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    ``,
+    `📈 *Team Summary*`,
+    `• Leads: *${totalLeads}* | Appts: *${totalAppts}* | Insps: *${totalInsps}*`,
+    `• Stock Ins: *${totalSI}* | Disbursal: *${totalDisb}* | PR: *${totalPR}*`,
+    `• Appt → Insp Conv: *${apptToInsp}%* | Overall Conv: *${convPct}%*`,
+    ``,
+    `🔥 *Top Performer:* ${top ? `${top.kam} – ${top.si || 0} SI` : '–'}`,
+    `📉 *Needs Push:* ${bottom ? `${bottom.kam} – ${bottom.si || 0} SI` : '–'}`,
+    ``,
+    `👥 *KAM-wise EOD*`,
+    '```',
+    padRow(['KAM', 'Leads', 'Appts', 'Insps', 'SI', 'Disb', 'PR']),
+    '─'.repeat(70),
+    ...sorted.map((k) => padRow([
+      truncate(k.kam || '–', 23),
+      k.leads || '0', k.appts || '0', k.insps || '0',
+      k.si || '0', k.disbursal || '0', k.pr || '0',
+    ])),
+    '```',
+    `_🤖 Day Plan Agent | ${d}_`,
+  ];
+
+  return lines.join('\n');
+}
+
 // ─── No-CSV Notice ────────────────────────────────────────────────────────────
 
 function noCSVMessage() {
-  return `📊 *KAM PERFORMANCE UPDATE* | ${todayIST()}\n\n⚠️ CSV data not received or invalid for today's KAM report.`;
+  return `📊 *Day Plan | KAM Performance* | ${todayIST()}\n\n⚠️ No CSV received – performance report skipped for today.`;
 }
 
 module.exports = {
   USERS,
   CHANNEL_ID: 'C0B3BV6UL03',
+  RISHABH_ID: 'U02DFMUBZNW',
   commitmentMessage,
   eodMessage,
   reminderMessage,
   kamPerformanceMessage,
+  eodInsightsMessage,
   noCSVMessage,
 };

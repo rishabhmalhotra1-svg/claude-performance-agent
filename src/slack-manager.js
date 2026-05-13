@@ -21,10 +21,12 @@ const logger  = require('./logger');
 const { readCSVFiles, archiveCSVFiles } = require('./csv-parser');
 const {
   CHANNEL_ID,
+  RISHABH_ID,
   commitmentMessage,
   eodMessage,
   reminderMessage,
   kamPerformanceMessage,
+  eodInsightsMessage,
   noCSVMessage,
 } = require('./slack-messages');
 const tracker = require('./reminder-tracker');
@@ -34,11 +36,11 @@ const TIMEZONE = 'Asia/Kolkata';
 
 // ─── Slack post helper ────────────────────────────────────────────────────────
 
-async function post(text, threadTs) {
+async function post(text, threadTs, channelOverride) {
   if (!SLACK_BOT_TOKEN) throw new Error('SLACK_BOT_TOKEN not set');
 
   const payload = {
-    channel: CHANNEL_ID,
+    channel: channelOverride || CHANNEL_ID,
     text,
     mrkdwn: true,
     ...(threadTs ? { thread_ts: threadTs } : {}),
@@ -103,6 +105,23 @@ async function runEOD() {
   }
 }
 
+// ─── EOD Insights (9:00 PM IST) ──────────────────────────────────────────────
+
+async function runEODInsights() {
+  logger.info('[Insights] Generating EOD insights…');
+  try {
+    const csvData = readCSVFiles();           // looks for EOD CSV in data/
+    const msg = eodInsightsMessage(csvData);
+    // Post insights to channel + DM Rishabh
+    await post(msg);
+    await post(msg, null, RISHABH_ID);        // DM to Rishabh
+    if (csvData) archiveCSVFiles();
+    logger.info('[Insights] EOD insights posted');
+  } catch (err) {
+    logger.error(`[Insights] Error: ${err.message}`);
+  }
+}
+
 // ─── Task 4: Reminders ────────────────────────────────────────────────────────
 
 async function runReminder(type) {
@@ -164,6 +183,12 @@ function startSlackManager() {
     await runReminder('eod');
   }, { timezone: TIMEZONE });
 
+  // 9:00 PM IST – EOD Insights for Rishabh
+  cron.schedule('0 21 * * *', async () => {
+    logger.info('--- 9:00 PM trigger (EOD Insights) ---');
+    await runEODInsights();
+  }, { timezone: TIMEZONE });
+
   logger.info('=== Slack Automation Manager running ===');
 }
 
@@ -171,11 +196,12 @@ function startSlackManager() {
 
 async function runNow(task) {
   switch (task) {
-    case 'commitment': return runCommitment();
-    case 'eod':        return runEOD();
-    case 'kam':        return runKAMPerformance();
+    case 'commitment':          return runCommitment();
+    case 'eod':                 return runEOD();
+    case 'kam':                 return runKAMPerformance();
     case 'reminder-commitment': return runReminder('commitment');
     case 'reminder-eod':        return runReminder('eod');
+    case 'insights':            return runEODInsights();
     default:
       logger.info('Running all tasks in sequence (test mode)…');
       await runKAMPerformance();

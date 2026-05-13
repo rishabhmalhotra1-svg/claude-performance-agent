@@ -13,7 +13,8 @@
     "slack:eod": "node src/index.js --slack eod",
     "slack:kam": "node src/index.js --slack kam",
     "slack:reminder-commitment": "node src/index.js --slack reminder-commitment",
-    "slack:reminder-eod": "node src/index.js --slack reminder-eod"
+    "slack:reminder-eod": "node src/index.js --slack reminder-eod",
+    "slack:insights": "node src/index.js --slack insights"
   },
   "dependencies": {
     "axios": "^1.6.0",
