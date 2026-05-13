@@ -2,4 +2,7 @@ node_modules/
 .env
 logs/*.log
 logs/history/
+logs/reminder-state.json
+data/*.csv
+data/archive/
 .DS_Store
