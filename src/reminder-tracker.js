@@ -18,10 +18,10 @@ const { USERS } = require('./slack-messages');
 
 const STATE_FILE = path.join(__dirname, '..', 'logs', 'reminder-state.json');
 
-const ALL_USERS = Object.values(USERS);
+const ALL_USERS = Object.values(USERS); // [U04Q2RM88GP, U09LZNDQ7KJ, U06LU7ZTEEM]
 
 function todayKey() {
-  return new Date().toLocaleDateString('sv', { timeZone: 'Asia/Kolkata' });
+  return new Date().toLocaleDateString('sv', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD
 }
 
 function emptyState(date) {
@@ -52,10 +52,12 @@ function save(state) {
   }
 }
 
+// ─── Public API ───────────────────────────────────────────────────────────────
+
 function markSent(type) {
   const state = load();
   state[type].sent = true;
-  state[type].pendingUsers = [...ALL_USERS];
+  state[type].pendingUsers = [...ALL_USERS]; // reset pending on fresh send
   state[type].reminders = 0;
   save(state);
   logger.info(`Reminder state: ${type} marked as sent`);
@@ -68,6 +70,10 @@ function markAcknowledged(type, userId) {
   logger.info(`Reminder state: ${userId} acknowledged ${type}`);
 }
 
+/**
+ * Returns pending user IDs for a reminder if eligible, or null if not.
+ * Increments reminder count.
+ */
 function getNextReminder(type) {
   const state = load();
   const t = state[type];

@@ -55,6 +55,7 @@ function parseCSVText(text) {
   const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(Boolean);
   if (lines.length < 2) return [];
 
+  // Simple CSV split (handles quoted fields)
   function splitLine(line) {
     const cols = [];
     let cur = '', inQuote = false;
@@ -83,6 +84,7 @@ function parseCSVText(text) {
 }
 
 function mergeCSVData(datasets) {
+  // Merge multiple CSV datasets by KAM name/email
   const kamMap = {};
 
   for (const { headers, rows } of datasets) {
@@ -96,6 +98,7 @@ function mergeCSVData(datasets) {
         kamMap[kamKey] = { kam: kamKey };
       }
 
+      // Merge all fields
       Object.keys(COL).forEach((field) => {
         const col = resolveHeader(headers, field);
         if (col && row[col] !== undefined && row[col] !== '') {
@@ -123,7 +126,7 @@ function readCSVFiles() {
   logger.info(`Found ${files.length} CSV file(s): ${files.join(', ')}`);
 
   const datasets = [];
-  for (const file of files.slice(0, 2)) {
+  for (const file of files.slice(0, 2)) { // max 2 files
     try {
       const text = fs.readFileSync(path.join(DATA_DIR, file), 'utf8');
       const parsed = parseCSVText(text);

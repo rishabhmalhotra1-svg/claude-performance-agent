@@ -65,7 +65,7 @@ async function runKAMPerformance() {
     const kamData = readCSVFiles();
     if (!kamData) {
       logger.info('[Task 1] No CSV files – skipping KAM performance report');
-      return;
+      return; // Do NOT send anything if no CSV
     }
     const msg = kamPerformanceMessage(kamData);
     await post(msg);
@@ -171,11 +171,11 @@ function startSlackManager() {
 
 async function runNow(task) {
   switch (task) {
-    case 'commitment':           return runCommitment();
-    case 'eod':                  return runEOD();
-    case 'kam':                  return runKAMPerformance();
-    case 'reminder-commitment':  return runReminder('commitment');
-    case 'reminder-eod':         return runReminder('eod');
+    case 'commitment': return runCommitment();
+    case 'eod':        return runEOD();
+    case 'kam':        return runKAMPerformance();
+    case 'reminder-commitment': return runReminder('commitment');
+    case 'reminder-eod':        return runReminder('eod');
     default:
       logger.info('Running all tasks in sequence (test mode)…');
       await runKAMPerformance();

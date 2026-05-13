@@ -38,9 +38,11 @@ async function run() {
   logger.info(`=== KAM Performance Agent run started at ${runAt.toISOString()} ===`);
 
   try {
+    // 1. Fetch
     logger.info('Step 1/4 – Fetching dashboard data…');
     const filteredData = await fetchDashboardData();
 
+    // 2. Analyze
     logger.info('Step 2/4 – Analyzing data…');
     const report = analyzeData(filteredData);
 
@@ -55,17 +57,22 @@ async function run() {
       return;
     }
 
+    // Load historical context for trend comparisons
     const prev = history.yesterday(report.date);
     if (prev) {
       logger.info(`Loaded yesterday's snapshot: Stock ${prev.team.stockIns}, Conv ${prev.team.overallConv}%`);
       report.previousDay = prev;
     }
     const lastWk = history.lastWeek(report.date);
-    if (lastWk) report.lastWeek = lastWk;
+    if (lastWk) {
+      report.lastWeek = lastWk;
+    }
 
+    // 3. Format
     logger.info('Step 3/4 – Formatting Slack message…');
     const message = formatReport(report);
 
+    // 4. Publish
     logger.info('Step 4/4 – Publishing to Slack…');
     if (DRY_RUN) {
       await testPost(message);
@@ -75,6 +82,7 @@ async function run() {
       logger.info('Slack message published');
     }
 
+    // Save snapshot for future comparisons
     history.save(report);
     logger.info('Snapshot saved to history');
 
@@ -85,6 +93,7 @@ async function run() {
     } else {
       console.error('\n[DRY-RUN] Error occurred:', err.message);
     }
+    // Non-zero exit only in run-now / dry-run mode so the scheduler keeps running
     if (RUN_NOW || DRY_RUN) process.exit(1);
   }
 
@@ -98,6 +107,7 @@ function startScheduler() {
   logger.info(
     `Scheduler started – will run daily at ${String(SCHEDULE_HOUR).padStart(2, '0')}:${String(SCHEDULE_MINUTE).padStart(2, '0')} ${TIMEZONE}`
   );
+  logger.info(`Cron expression: "${cronExpr}"`);
 
   if (!cron.validate(cronExpr)) {
     logger.error('Invalid cron expression – check SCHEDULE_HOUR and SCHEDULE_MINUTE env vars');
@@ -109,13 +119,16 @@ function startScheduler() {
     run().catch((err) => logger.error(`Unhandled error in scheduled run: ${err.message}`));
   }, { timezone: TIMEZONE });
 
-  logger.info('KAM dashboard scheduler running.');
+  logger.info('Scheduler is running. Press Ctrl+C to stop.');
 
-  process.on('SIGINT',  () => { logger.info('Stopped (SIGINT)');  process.exit(0); });
-  process.on('SIGTERM', () => { logger.info('Stopped (SIGTERM)'); process.exit(0); });
+  // Keep process alive
+  process.on('SIGINT',  () => { logger.info('Scheduler stopped (SIGINT)');  process.exit(0); });
+  process.on('SIGTERM', () => { logger.info('Scheduler stopped (SIGTERM)'); process.exit(0); });
 }
 
 // ─── Entry point ─────────────────────────────────────────────────────────────
+
+// ─── Slack manager task trigger ──────────────────────────────────────────────
 
 const slackArgIdx = args.indexOf('--slack');
 if (slackArgIdx !== -1) {
@@ -127,6 +140,7 @@ if (slackArgIdx !== -1) {
 } else if (RUN_NOW || DRY_RUN) {
   run();
 } else {
+  // Start both: KAM dashboard scheduler + Slack automation manager
   startScheduler();
   startSlackManager();
 }

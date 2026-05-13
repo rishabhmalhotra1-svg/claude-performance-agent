@@ -4,9 +4,9 @@
  * All Slack message templates for the team-rishabh-sunny-nikhil automation.
  *
  * User IDs (resolved from Slack):
- *   sunny.sharma   → U04Q2RM88GP
- *   sunny.12       → U09LZNDQ7KJ
- *   Nikhil.virmani → U06LU7ZTEEM
+ *   sunny.sharma  → U04Q2RM88GP
+ *   sunny.12      → U09LZNDQ7KJ
+ *   Nikhil.virmani→ U06LU7ZTEEM
  *
  * Channel:
  *   team-rishabh-sunny-nikhil → C0B3BV6UL03
@@ -89,16 +89,6 @@ function kamPerformanceMessage(kamData) {
     return `📊 *KAM PERFORMANCE UPDATE* | ${todayIST()}\n\n⚠️ CSV data not received or invalid for today's KAM report.`;
   }
 
-  const COL_WIDTHS = [23, 11, 12, 10, 11, 10, 11, 6, 6, 6, 6, 9, 14, 10, 4, 4];
-
-  function padRow(cells) {
-    return cells.map((c, i) => String(c).padEnd(COL_WIDTHS[i] || 8)).join(' ');
-  }
-
-  function truncate(s, len) {
-    return s.length > len ? s.slice(0, len - 1) + '…' : s;
-  }
-
   const header = [
     '📊 *KAM PERFORMANCE UPDATE* | ' + todayIST(),
     '',
@@ -108,7 +98,7 @@ function kamPerformanceMessage(kamData) {
       'Avg Calls', 'Avg Visits', 'Leads', 'Appts', 'Insps',
       'File', 'DCF Form', 'DCF/DSA Onbrd', 'Disbursal', 'PR', 'SI',
     ]),
-    '─'.repeat(145),
+    '─'.repeat(140),
   ];
 
   const rows = kamData.map((k) =>
@@ -134,6 +124,20 @@ function kamPerformanceMessage(kamData) {
 
   return [...header, ...rows, '```'].join('\n');
 }
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const COL_WIDTHS = [23, 11, 12, 10, 11, 10, 11, 6, 6, 6, 6, 9, 14, 10, 4, 4];
+
+function padRow(cells) {
+  return cells.map((c, i) => String(c).padEnd(COL_WIDTHS[i] || 8)).join(' ');
+}
+
+function truncate(s, len) {
+  return s.length > len ? s.slice(0, len - 1) + '…' : s;
+}
+
+// ─── No-CSV Notice ────────────────────────────────────────────────────────────
 
 function noCSVMessage() {
   return `📊 *KAM PERFORMANCE UPDATE* | ${todayIST()}\n\n⚠️ CSV data not received or invalid for today's KAM report.`;
