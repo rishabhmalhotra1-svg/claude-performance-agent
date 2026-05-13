@@ -13,7 +13,7 @@
  */
 
 const SHEET_URL =
-  'https://docs.google.com/spreadsheets/d/1HPSoWeFua4EXYEFu1OI2COafIuMphL-t3APyFukNoLk/edit#gid=0';
+  'https://docs.google.com/spreadsheets/d/1HPSoWeFua4EXYEFu1OI2COafIuMphL-t3APyFukNoLk/edit?gid=0#gid=0';
 
 const USERS = {
   'sunny.sharma':   'U04Q2RM88GP',
@@ -34,18 +34,12 @@ function todayIST() {
 // ─── TASK 2: Commitment Message ───────────────────────────────────────────────
 
 function commitmentMessage() {
-  return `🔥 *Today's Commitment Update Required* | ${todayIST()}
+  return `🔥 *Day Plan | Today's Commitment Update Required* | ${todayIST()}
 
 ${tag(USERS['sunny.sharma'])} ${tag(USERS['sunny.12'])} ${tag(USERS['nikhil.virmani'])}
 
-Please update today's commitment in the Google Sheet below and share a screenshot in Slack once updated:
+Please fill in today's commitment numbers in the sheet below and share a screenshot here once done:
 🔗 <${SHEET_URL}|Commitment & EOD Tracker Sheet>
-
-*Required format:*
-\`KAM Email || Leads || Appts || Insps || File || DCF Form || DCF/DSA Onboarding || Disbursal || PR || SI\`
-
-*Default example:*
-\`abc@cars24.com || 0 || 0 || 0 || 0 || 0 || 0 || 0 || 0 || 0\`
 
 ${tag(USERS['nikhil.virmani'])} please share DSA commitment separately in the same sheet and share screenshot after updating.`;
 }
@@ -53,18 +47,12 @@ ${tag(USERS['nikhil.virmani'])} please share DSA commitment separately in the sa
 // ─── TASK 3: EOD Message ──────────────────────────────────────────────────────
 
 function eodMessage() {
-  return `📌 *EOD Update Required* | ${todayIST()}
+  return `📌 *Day Plan | EOD Update Required* | ${todayIST()}
 
 ${tag(USERS['sunny.sharma'])} ${tag(USERS['sunny.12'])} ${tag(USERS['nikhil.virmani'])}
 
-Please update today's EOD in the Google Sheet below and share a screenshot in Slack once updated:
+Please fill in today's EOD numbers in the sheet below and share a screenshot here once done:
 🔗 <${SHEET_URL}|Commitment & EOD Tracker Sheet>
-
-*Required format:*
-\`KAM Email || Leads || Appts || Insps || File || DCF/DSA Onboarding || Disbursal || PR || SI || Visits/Calling\`
-
-*Default example:*
-\`abc@cars24.com || 0 || 0 || 0 || 0 || 0 || 0 || 0 || 0 || 0\`
 
 ${tag(USERS['nikhil.virmani'])} please share DSA EOD separately in the same sheet and share screenshot after updating.`;
 }
