@@ -38,8 +38,11 @@ function commitmentMessage() {
 
 ${tag(USERS['sunny.sharma'])} ${tag(USERS['sunny.12'])} ${tag(USERS['nikhil.virmani'])}
 
-Please fill in today's commitment numbers in the sheet below and share a screenshot here once done:
+Please fill in today's commitment numbers *KAM-wise* in the sheet below and share a screenshot here once done:
 🔗 <${SHEET_URL}|Commitment & EOD Tracker Sheet>
+
+⏰ *Please share your commitment before 11:30 AM.*
+✅ Make sure numbers are accurate – no over-reporting or under-reporting.
 
 ${tag(USERS['nikhil.virmani'])} please share DSA commitment separately in the same sheet and share screenshot after updating.`;
 }
@@ -51,8 +54,11 @@ function eodMessage() {
 
 ${tag(USERS['sunny.sharma'])} ${tag(USERS['sunny.12'])} ${tag(USERS['nikhil.virmani'])}
 
-Please fill in today's EOD numbers in the sheet below and share a screenshot here once done:
+Please fill in today's EOD numbers *KAM-wise* in the sheet below and share a screenshot here once done:
 🔗 <${SHEET_URL}|Commitment & EOD Tracker Sheet>
+
+⏰ *Please share your EOD before 7:30 PM.*
+✅ Make sure numbers are accurate – no over-reporting or under-reporting.
 
 ${tag(USERS['nikhil.virmani'])} please share DSA EOD separately in the same sheet and share screenshot after updating.`;
 }
