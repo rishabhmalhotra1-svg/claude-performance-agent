@@ -27,8 +27,8 @@ function todayKey() {
 function emptyState(date) {
   return {
     date,
-    commitment: { sent: false, reminders: 0, pendingUsers: [...ALL_USERS] },
-    eod:        { sent: false, reminders: 0, pendingUsers: [...ALL_USERS] },
+    commitment: { sent: false, reminders: 0, pendingUsers: [...ALL_USERS], triggerTs: null },
+    eod:        { sent: false, reminders: 0, pendingUsers: [...ALL_USERS], triggerTs: null },
   };
 }
 
@@ -54,13 +54,18 @@ function save(state) {
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
-function markSent(type) {
+function markSent(type, triggerTs) {
   const state = load();
   state[type].sent = true;
   state[type].pendingUsers = [...ALL_USERS]; // reset pending on fresh send
   state[type].reminders = 0;
+  state[type].triggerTs = triggerTs || null;
   save(state);
-  logger.info(`Reminder state: ${type} marked as sent`);
+  logger.info(`Reminder state: ${type} marked as sent (ts: ${triggerTs})`);
+}
+
+function getTriggerTs(type) {
+  return load()[type].triggerTs;
 }
 
 function markAcknowledged(type, userId) {
@@ -102,4 +107,4 @@ function isSent(type) {
   return load()[type].sent;
 }
 
-module.exports = { markSent, markAcknowledged, getNextReminder, getState, isSent };
+module.exports = { markSent, markAcknowledged, getNextReminder, getState, isSent, getTriggerTs };

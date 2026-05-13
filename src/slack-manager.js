@@ -29,7 +29,11 @@ const {
   eodInsightsMessage,
   noCSVMessage,
 } = require('./slack-messages');
+
+// User ID → username lookup (reverse of USERS map)
+const USER_ID_MAP = Object.fromEntries(Object.entries(USERS).map(([k, v]) => [v, k]));
 const tracker = require('./reminder-tracker');
+const { USERS } = require('./slack-messages');
 
 const SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN;
 const TIMEZONE = 'Asia/Kolkata';
@@ -59,6 +63,37 @@ async function post(text, threadTs, channelOverride) {
   return resp.data.ts;
 }
 
+// ─── Auto-detect who already responded ───────────────────────────────────────
+
+async function autoMarkResponded(type) {
+  const sinceTs = tracker.getTriggerTs(type);
+  if (!sinceTs) return;
+
+  try {
+    const resp = await axios.get('https://slack.com/api/conversations.history', {
+      params: { channel: CHANNEL_ID, oldest: sinceTs, limit: 100 },
+      headers: { Authorization: `Bearer ${SLACK_BOT_TOKEN}` },
+      timeout: 10000,
+    });
+
+    if (!resp.data.ok) return;
+
+    const allUserIds = Object.values(USERS);
+    const responded = new Set(
+      resp.data.messages
+        .map((m) => m.user)
+        .filter((uid) => allUserIds.includes(uid))
+    );
+
+    for (const uid of responded) {
+      tracker.markAcknowledged(type, uid);
+      logger.info(`[AutoDetect] ${USER_ID_MAP[uid] || uid} already responded for ${type} – removed from pending`);
+    }
+  } catch (err) {
+    logger.warn(`[AutoDetect] Could not read channel history: ${err.message}`);
+  }
+}
+
 // ─── Task 1: KAM Performance ──────────────────────────────────────────────────
 
 async function runKAMPerformance() {
@@ -84,8 +119,8 @@ async function runKAMPerformance() {
 async function runCommitment() {
   logger.info('[Task 2] Sending Commitment message…');
   try {
-    await post(commitmentMessage());
-    tracker.markSent('commitment');
+    const ts = await post(commitmentMessage());
+    tracker.markSent('commitment', ts);
     logger.info('[Task 2] Commitment message sent');
   } catch (err) {
     logger.error(`[Task 2] Error: ${err.message}`);
@@ -97,8 +132,8 @@ async function runCommitment() {
 async function runEOD() {
   logger.info('[Task 3] Sending EOD message…');
   try {
-    await post(eodMessage());
-    tracker.markSent('eod');
+    const ts = await post(eodMessage());
+    tracker.markSent('eod', ts);
     logger.info('[Task 3] EOD message sent');
   } catch (err) {
     logger.error(`[Task 3] Error: ${err.message}`);
@@ -125,6 +160,7 @@ async function runEODInsights() {
 // ─── Task 4: Reminders ────────────────────────────────────────────────────────
 
 async function runReminder(type) {
+  await autoMarkResponded(type); // drop anyone who already posted before checking
   const pendingUsers = tracker.getNextReminder(type);
   if (!pendingUsers) {
     logger.info(`[Task 4] No reminder needed for ${type}`);
