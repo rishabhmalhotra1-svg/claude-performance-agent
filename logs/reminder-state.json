@@ -1,0 +1,5 @@
+{
+  "date": "2000-01-01",
+  "commitment": { "sent": false, "reminders": 0, "pendingUsers": [], "triggerTs": null },
+  "eod": { "sent": false, "reminders": 0, "pendingUsers": [], "triggerTs": null }
+}

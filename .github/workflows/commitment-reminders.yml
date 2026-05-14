@@ -1,0 +1,35 @@
+name: Day Plan – Commitment Reminders
+
+on:
+  schedule:
+    - cron: '30 6 * * 1-6'  # 12:00 PM IST – Reminder 1
+    - cron: '0 7 * * 1-6'   # 12:30 PM IST – Reminder 2
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - run: npm ci
+
+      - name: Send Commitment reminder (skips users who already responded)
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        run: node src/index.js --slack reminder-commitment
+
+      - name: Persist reminder state
+        run: |
+          git config user.name "Day Plan Agent"
+          git config user.email "dayplan@github-actions"
+          git add logs/reminder-state.json
+          git diff --staged --quiet || git commit -m "chore: state update – commitment reminder [skip ci]"
+          git push

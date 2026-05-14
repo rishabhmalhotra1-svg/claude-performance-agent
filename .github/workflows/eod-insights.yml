@@ -1,0 +1,34 @@
+name: Day Plan – EOD Insights
+
+on:
+  schedule:
+    - cron: '30 15 * * 1-6'  # 9:00 PM IST (Mon–Sat)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - run: npm ci
+
+      - name: Send EOD insights to channel + DM Rishabh
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        run: node src/index.js --slack insights
+
+      - name: Archive any processed CSVs
+        run: |
+          git config user.name "Day Plan Agent"
+          git config user.email "dayplan@github-actions"
+          git add data/
+          git diff --staged --quiet || git commit -m "chore: archive EOD CSVs [skip ci]"
+          git push

@@ -2,7 +2,6 @@ node_modules/
 .env
 logs/*.log
 logs/history/
-logs/reminder-state.json
-data/*.csv
+# reminder-state.json is tracked so GitHub Actions can persist state between runs
 data/archive/
 .DS_Store
