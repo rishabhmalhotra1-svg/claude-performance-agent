@@ -1,5 +1,23 @@
 {
-  "date": "2000-01-01",
-  "commitment": { "sent": false, "reminders": 0, "pendingUsers": [], "triggerTs": null },
-  "eod": { "sent": false, "reminders": 0, "pendingUsers": [], "triggerTs": null }
+  "date": "2026-05-15",
+  "commitment": {
+    "sent": true,
+    "reminders": 0,
+    "pendingUsers": [
+      "U04Q2RM88GP",
+      "U09LZNDQ7KJ",
+      "U06LU7ZTEEM"
+    ],
+    "triggerTs": "1778850066.935949"
+  },
+  "eod": {
+    "sent": false,
+    "reminders": 0,
+    "pendingUsers": [
+      "U04Q2RM88GP",
+      "U09LZNDQ7KJ",
+      "U06LU7ZTEEM"
+    ],
+    "triggerTs": null
+  }
 }
