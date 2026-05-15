@@ -30,10 +30,12 @@ const {
   noCSVMessage,
 } = require('./slack-messages');
 
-// User ID → username lookup (reverse of USERS map)
-const USER_ID_MAP = Object.fromEntries(Object.entries(USERS).map(([k, v]) => [v, k]));
+// ✅ FIX: Import USERS and tracker BEFORE using them
 const tracker = require('./reminder-tracker');
 const { USERS } = require('./slack-messages');
+
+// ✅ Now USERS is defined before this line
+const USER_ID_MAP = Object.fromEntries(Object.entries(USERS).map(([k, v]) => [v, k]));
 
 const SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN;
 const TIMEZONE = 'Asia/Kolkata';
@@ -102,7 +104,7 @@ async function runKAMPerformance() {
     const kamData = readCSVFiles();
     if (!kamData) {
       logger.info('[Task 1] No CSV files – skipping KAM performance report');
-      return; // Do NOT send anything if no CSV
+      return;
     }
     const msg = kamPerformanceMessage(kamData);
     await post(msg);
@@ -145,11 +147,10 @@ async function runEOD() {
 async function runEODInsights() {
   logger.info('[Insights] Generating EOD insights…');
   try {
-    const csvData = readCSVFiles();           // looks for EOD CSV in data/
+    const csvData = readCSVFiles();
     const msg = eodInsightsMessage(csvData);
-    // Post insights to channel + DM Rishabh
     await post(msg);
-    await post(msg, null, RISHABH_ID);        // DM to Rishabh
+    await post(msg, null, RISHABH_ID);
     if (csvData) archiveCSVFiles();
     logger.info('[Insights] EOD insights posted');
   } catch (err) {
@@ -160,7 +161,7 @@ async function runEODInsights() {
 // ─── Task 4: Reminders ────────────────────────────────────────────────────────
 
 async function runReminder(type) {
-  await autoMarkResponded(type); // drop anyone who already posted before checking
+  await autoMarkResponded(type);
   const pendingUsers = tracker.getNextReminder(type);
   if (!pendingUsers) {
     logger.info(`[Task 4] No reminder needed for ${type}`);
@@ -182,44 +183,37 @@ function startSlackManager() {
   logger.info(`Channel: ${CHANNEL_ID}`);
   logger.info('Schedule (IST): 11:30 AM commitment+KAM | 12:00/12:30 reminders | 7:30 PM EOD | 8:00/8:30 reminders');
 
-  // 11:30 AM IST – KAM Performance + Commitment
   cron.schedule('30 11 * * *', async () => {
     logger.info('--- 11:30 AM trigger ---');
     await runKAMPerformance();
     await runCommitment();
   }, { timezone: TIMEZONE });
 
-  // 12:00 PM IST – Commitment Reminder 1
   cron.schedule('0 12 * * *', async () => {
     logger.info('--- 12:00 PM trigger (Commitment Reminder 1) ---');
     await runReminder('commitment');
   }, { timezone: TIMEZONE });
 
-  // 12:30 PM IST – Commitment Reminder 2
   cron.schedule('30 12 * * *', async () => {
     logger.info('--- 12:30 PM trigger (Commitment Reminder 2) ---');
     await runReminder('commitment');
   }, { timezone: TIMEZONE });
 
-  // 7:30 PM IST – EOD
   cron.schedule('30 19 * * *', async () => {
     logger.info('--- 7:30 PM trigger ---');
     await runEOD();
   }, { timezone: TIMEZONE });
 
-  // 8:00 PM IST – EOD Reminder 1
   cron.schedule('0 20 * * *', async () => {
     logger.info('--- 8:00 PM trigger (EOD Reminder 1) ---');
     await runReminder('eod');
   }, { timezone: TIMEZONE });
 
-  // 8:30 PM IST – EOD Reminder 2
   cron.schedule('30 20 * * *', async () => {
     logger.info('--- 8:30 PM trigger (EOD Reminder 2) ---');
     await runReminder('eod');
   }, { timezone: TIMEZONE });
 
-  // 9:00 PM IST – EOD Insights for Rishabh
   cron.schedule('0 21 * * *', async () => {
     logger.info('--- 9:00 PM trigger (EOD Insights) ---');
     await runEODInsights();
