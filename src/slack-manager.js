@@ -30,11 +30,9 @@ const {
   noCSVMessage,
 } = require('./slack-messages');
 
-// ✅ FIX: Import USERS and tracker BEFORE using them
+// ✅ FIXED: tracker and USERS imported BEFORE USER_ID_MAP
 const tracker = require('./reminder-tracker');
 const { USERS } = require('./slack-messages');
-
-// ✅ Now USERS is defined before this line
 const USER_ID_MAP = Object.fromEntries(Object.entries(USERS).map(([k, v]) => [v, k]));
 
 const SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN;
