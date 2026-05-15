@@ -1,0 +1,36 @@
+name: Delete Last Bot Message
+on:
+  workflow_dispatch:
+    inputs:
+      message_type:
+        description: 'Which message to delete?'
+        required: true
+        default: 'commitment'
+        type: choice
+        options:
+          - commitment
+          - eod
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/kam-performance-slack-bot-lTQJc
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - name: Delete last bot message
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        run: node src/index.js --slack delete-${{ github.event.inputs.message_type }}
+      - name: Update state
+        run: |
+          git config user.name "Day Plan Agent"
+          git config user.email "dayplan@github-actions"
+          git add data/
+          git diff --staged --quiet || git commit -m "chore: update state after delete [skip ci]"
+          git push
