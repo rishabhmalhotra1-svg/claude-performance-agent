@@ -16,14 +16,14 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - run: npm ci
 
       - name: Send EOD insights to channel + DM Rishabh
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-        run: node src/index.js --slack insights
+        run: node src/index.js --slack eod
 
       - name: Archive any processed CSVs
         run: |
